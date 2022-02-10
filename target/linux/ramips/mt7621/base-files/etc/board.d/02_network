@@ -70,6 +70,11 @@ ramips_setup_interfaces()
 	ubnt,edgerouter-x-sfp)
 		ucidef_set_interfaces_lan_wan "eth1 eth2 eth3 eth4 eth5" "eth0"
 		;;
+	unielec,u7621-01-16m)
+		ucidef_add_switch "switch0" \
+				"1:lan" "2:lan" "3:lan" "4:lan" "0:wan" "6@eth0"
+		ucidef_set_interface_lan "eth0.1"
+		;;
 	yuncore,ax820|\
 	zyxel,nr7101)
 		ucidef_set_interfaces_lan_wan "lan" "wan"
@@ -159,6 +164,11 @@ ramips_setup_macs()
 		label_mac=$(cat "/sys/firmware/mikrotik/hard_config/mac_base")
 		wan_mac=$label_mac
 		lan_mac=$(macaddr_add $label_mac 1)
+		;;
+	unielec,u7621-01-16m)
+		lan_mac=$(cat /sys/class/net/eth0/address)
+		wan_mac=$(mtd_get_mac_binary factory 0xe006)
+		label_mac=$wan_mac
 		;;
 	yuncore,ax820)
 		label_mac=$(mtd_get_mac_binary Factory 0x4)

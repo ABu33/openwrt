@@ -382,7 +382,7 @@ struct fe_soc_data {
 	const u16 *reg_table;
 
 	void (*init_data)(struct fe_soc_data *data, struct net_device *netdev);
-	void (*reset_fe)(void);
+	void (*reset_fe)(struct fe_priv *priv);
 	void (*set_mac)(struct fe_priv *priv, unsigned char *mac);
 	int (*fwd_config)(struct fe_priv *priv);
 	void (*tx_dma)(struct fe_tx_dma *txd);
@@ -498,6 +498,7 @@ struct fe_priv {
 	DECLARE_BITMAP(pending_flags, FE_FLAG_MAX);
 
 	struct reset_control		*rst_ppe;
+	struct reset_control		*rst_fe;
 	struct mtk_foe_entry		*foe_table;
 	dma_addr_t			foe_table_phys;
 	struct flow_offload __rcu	**foe_flow_table;
@@ -517,11 +518,21 @@ void fe_reg_w32(u32 val, enum fe_reg reg);
 u32 fe_reg_r32(enum fe_reg reg);
 
 void fe_reset(u32 reset_bits);
+void fe_reset_fe(struct fe_priv *priv);
 
 static inline void *priv_netdev(struct fe_priv *priv)
 {
 	return (char *)priv - ALIGN(sizeof(struct net_device), NETDEV_ALIGN);
 }
+
+int ra_ppe_probe(struct fe_priv *eth);
+void ra_ppe_remove(struct fe_priv *eth);
+int mtk_flow_offload(struct fe_priv *eth,
+		     enum flow_offload_type type,
+		     struct flow_offload *flow,
+		     struct flow_offload_hw_path *src,
+		     struct flow_offload_hw_path *dest);
+int ra_offload_check_rx(struct fe_priv *eth, struct sk_buff *skb, u32 rxd4);
 
 
 #endif /* FE_ETH_H */

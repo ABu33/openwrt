@@ -141,6 +141,17 @@ void fe_reset(u32 reset_bits)
 	usleep_range(10, 20);
 }
 
+void fe_reset_fe(struct fe_priv *priv)
+{
+	if (!priv->rst_fe)
+		return;
+
+	reset_control_assert(priv->rst_fe);
+	usleep_range(60, 120);
+	reset_control_deassert(priv->rst_fe);
+	usleep_range(60, 120);
+}
+
 static inline void fe_int_disable(u32 mask)
 {
 	fe_reg_w32(fe_reg_r32(FE_REG_FE_INT_ENABLE) & ~mask,
@@ -564,7 +575,7 @@ static inline u32 fe_empty_txd(struct fe_tx_ring *ring)
 	barrier();
 	return (u32)(ring->tx_ring_size -
 			((ring->tx_next_idx - ring->tx_free_idx) &
-			 (ring->tx_ring_size - 1)));
+			 (ring->tx_ring_size - 1)) - 1);
 }
 
 struct fe_map_state {
@@ -878,6 +889,8 @@ static int fe_poll_rx(struct napi_struct *napi, int budget,
 	struct fe_rx_dma *rxd, trxd;
 	int done = 0, pad;
 
+	fe_reg_w32(rx_intr, FE_REG_FE_INT_STATUS);
+
 	if (netdev->features & NETIF_F_RXCSUM)
 		checksum_bit = soc->checksum_bit;
 	else
@@ -940,11 +953,18 @@ static int fe_poll_rx(struct napi_struct *napi, int budget,
 			__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
 					       RX_DMA_VID(trxd.rxd3));
 
-		stats->rx_packets++;
-		stats->rx_bytes += pktlen;
+#ifdef CONFIG_NET_RALINK_OFFLOAD
+		if (ra_offload_check_rx(priv, skb, trxd.rxd4) == 0) {
+#endif
+			stats->rx_packets++;
+			stats->rx_bytes += pktlen;
 
-		napi_gro_receive(napi, skb);
-
+			napi_gro_receive(napi, skb);
+#ifdef CONFIG_NET_RALINK_OFFLOAD
+		} else {
+			dev_kfree_skb(skb);
+		}
+#endif
 		ring->rx_data[idx] = new_data;
 		rxd->rxd1 = (unsigned int)dma_addr;
 
@@ -963,9 +983,6 @@ release_desc:
 		done++;
 	}
 
-	if (done < budget)
-		fe_reg_w32(rx_intr, FE_REG_FE_INT_STATUS);
-
 	return done;
 }
 
@@ -979,6 +996,8 @@ static int fe_poll_tx(struct fe_priv *priv, int budget, u32 tx_intr,
 	int done = 0;
 	u32 idx, hwidx;
 	struct fe_tx_ring *ring = &priv->tx_ring;
+
+	fe_reg_w32(tx_intr, FE_REG_FE_INT_STATUS);
 
 	idx = ring->tx_free_idx;
 	hwidx = fe_reg_r32(FE_REG_TX_DTX_IDX0);
@@ -1003,9 +1022,7 @@ static int fe_poll_tx(struct fe_priv *priv, int budget, u32 tx_intr,
 	if (idx == hwidx) {
 		/* read hw index again make sure no new tx packet */
 		hwidx = fe_reg_r32(FE_REG_TX_DTX_IDX0);
-		if (idx == hwidx)
-			fe_reg_w32(tx_intr, FE_REG_FE_INT_STATUS);
-		else
+		if (idx != hwidx)
 			*tx_again = 1;
 	} else {
 		*tx_again = 1;
@@ -1085,7 +1102,11 @@ poll_again:
 	return rx_done;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)
 static void fe_tx_timeout(struct net_device *dev)
+#else
+static void fe_tx_timeout(struct net_device *dev, unsigned int txqueue)
+#endif
 {
 	struct fe_priv *priv = netdev_priv(dev);
 	struct fe_tx_ring *ring = &priv->tx_ring;
@@ -1281,6 +1302,9 @@ static int fe_open(struct net_device *dev)
 	napi_enable(&priv->rx_napi);
 	fe_int_enable(priv->soc->tx_int | priv->soc->rx_int);
 	netif_start_queue(dev);
+#ifdef CONFIG_NET_RALINK_OFFLOAD
+	ra_ppe_probe(priv);
+#endif
 
 	return 0;
 }
@@ -1316,6 +1340,10 @@ static int fe_stop(struct net_device *dev)
 	}
 
 	fe_free_dma(priv);
+
+#ifdef CONFIG_NET_RALINK_OFFLOAD
+	ra_ppe_remove(priv);
+#endif
 
 	return 0;
 }
@@ -1356,13 +1384,21 @@ static int __init fe_init(struct net_device *dev)
 	const char *mac_addr;
 	int err;
 
-	priv->soc->reset_fe();
+	if (priv->soc->reset_fe)
+		priv->soc->reset_fe(priv);
+	else
+		fe_reset_fe(priv);
 
-	if (priv->soc->switch_init)
-		if (priv->soc->switch_init(priv)) {
+	if (priv->soc->switch_init) {
+		err = priv->soc->switch_init(priv);
+		if (err) {
+			if (err == -EPROBE_DEFER)
+				return err;
+
 			netdev_err(dev, "failed to initialize switch core\n");
 			return -ENODEV;
 		}
+	}
 
 	fe_reset_phy(priv);
 
@@ -1477,6 +1513,23 @@ static int fe_change_mtu(struct net_device *dev, int new_mtu)
 	return fe_open(dev);
 }
 
+#ifdef CONFIG_NET_RALINK_OFFLOAD
+static int
+fe_flow_offload(enum flow_offload_type type, struct flow_offload *flow,
+		struct flow_offload_hw_path *src,
+		struct flow_offload_hw_path *dest)
+{
+	struct fe_priv *priv;
+
+	if (src->dev != dest->dev)
+		return -EINVAL;
+
+	priv = netdev_priv(src->dev);
+
+	return mtk_flow_offload(priv, type, flow, src, dest);
+}
+#endif
+
 static const struct net_device_ops fe_netdev_ops = {
 	.ndo_init		= fe_init,
 	.ndo_uninit		= fe_uninit,
@@ -1493,6 +1546,9 @@ static const struct net_device_ops fe_netdev_ops = {
 	.ndo_vlan_rx_kill_vid	= fe_vlan_rx_kill_vid,
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	.ndo_poll_controller	= fe_poll_controller,
+#endif
+#ifdef CONFIG_NET_RALINK_OFFLOAD
+	.ndo_flow_offload	= fe_flow_offload,
 #endif
 };
 
@@ -1575,6 +1631,12 @@ static int fe_probe(struct platform_device *pdev)
 		goto err_free_dev;
 	}
 
+	priv = netdev_priv(netdev);
+	spin_lock_init(&priv->page_lock);
+	priv->rst_fe = devm_reset_control_get(&pdev->dev, "fe");
+	if (IS_ERR(priv->rst_fe))
+		priv->rst_fe = NULL;
+
 	if (soc->init_data)
 		soc->init_data(soc, netdev);
 	netdev->vlan_features = netdev->hw_features &
@@ -1589,8 +1651,6 @@ static int fe_probe(struct platform_device *pdev)
 	if (fe_reg_table[FE_REG_FE_DMA_VID_BASE])
 		netdev->features |= NETIF_F_HW_VLAN_CTAG_FILTER;
 
-	priv = netdev_priv(netdev);
-	spin_lock_init(&priv->page_lock);
 	if (fe_reg_table[FE_REG_FE_COUNTER_BASE]) {
 		priv->hw_stats = kzalloc(sizeof(*priv->hw_stats), GFP_KERNEL);
 		if (!priv->hw_stats) {
@@ -1678,7 +1738,7 @@ static struct platform_driver fe_driver = {
 	.probe = fe_probe,
 	.remove = fe_remove,
 	.driver = {
-		.name = "mtk_soc_eth",
+		.name = "ralink_soc_eth",
 		.owner = THIS_MODULE,
 		.of_match_table = of_fe_match,
 	},

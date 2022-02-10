@@ -158,8 +158,8 @@ static void mt7620_hw_init(struct mt7620_gsw *gsw)
 	_mt7620_mii_write(gsw, gsw->ephy_base + 2, 16, 0x1515);
 	_mt7620_mii_write(gsw, gsw->ephy_base + 3, 16, 0x0f0f);
 
-	/* CPU Port6 Force Link 1G, FC ON */
-	mtk_switch_w32(gsw, 0x5e33b, GSW_REG_PORT_PMCR(6));
+	/* CPU Port6 Force Link 1G, FC OFF */
+	mtk_switch_w32(gsw, 0x5e30b, GSW_REG_PORT_PMCR(6));
 
 	/* Set Port 6 as CPU Port */
 	mtk_switch_w32(gsw, 0x7f7f7fe0, 0x0010);

@@ -9,6 +9,9 @@
 board_config_update
 
 case "$(board_name)" in
+	unielec,u7621-01-16m)
+		ucidef_set_compat_version "1.0"
+		;;
 	*)
 		ucidef_set_compat_version "1.1"
 		;;

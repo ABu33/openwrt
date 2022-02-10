@@ -1357,6 +1357,8 @@ TARGET_DEVICES += ubnt_unifi-nanohd
 define Device/unielec_u7621-01-16m
   $(Device/dsa-migration)
   $(Device/uimage-lzma-loader)
+  DEVICE_COMPAT_VERSION := 1.0
+  DEVICE_COMPAT_MESSAGE := Config is compat with swconfig
   IMAGE_SIZE := 16064k
   DEVICE_VENDOR := UniElec
   DEVICE_MODEL := U7621-01
