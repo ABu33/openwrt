@@ -9,7 +9,9 @@
 board_config_update
 
 case "$(board_name)" in
-	unielec,u7621-01-16m)
+	unielec,u7621-01-16m|\
+	xiaomi,mi-router-4a-gigabit|\
+	xiaomi,mi-router-3g-v2)
 		ucidef_set_compat_version "1.0"
 		;;
 	*)

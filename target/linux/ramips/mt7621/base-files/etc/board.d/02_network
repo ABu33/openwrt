@@ -40,10 +40,14 @@ ramips_setup_interfaces()
 	lenovo,newifi-d1|\
 	mikrotik,routerboard-m33g|\
 	xiaomi,mi-router-3g|\
-	xiaomi,mi-router-3g-v2|\
-	xiaomi,mi-router-4|\
-	xiaomi,mi-router-4a-gigabit)
+	xiaomi,mi-router-4)
 		ucidef_set_interfaces_lan_wan "lan1 lan2" "wan"
+		;;
+	xiaomi,mi-router-3g-v2|\
+	xiaomi,mi-router-4a-gigabit)
+		ucidef_add_switch "switch0" \
+				"2:lan:2" "3:lan:1" "4:wan" "6@eth0"
+		ucidef_set_interface_lan "eth0.1"
 		;;
 	gnubee,gb-pc1)
 		ucidef_set_interface_lan "ethblack ethblue"
@@ -167,6 +171,11 @@ ramips_setup_macs()
 		;;
 	unielec,u7621-01-16m)
 		lan_mac=$(cat /sys/class/net/eth0/address)
+		wan_mac=$(mtd_get_mac_binary factory 0xe006)
+		label_mac=$wan_mac
+		;;
+	xiaomi,mi-router-4a-gigabit|\
+	xiaomi,mi-router-3g-v2)
 		wan_mac=$(mtd_get_mac_binary factory 0xe006)
 		label_mac=$wan_mac
 		;;
