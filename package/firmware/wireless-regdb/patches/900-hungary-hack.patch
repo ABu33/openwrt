@@ -1,0 +1,19 @@
+Index: wireless-regdb-2022.08.12/db.txt
+===================================================================
+--- wireless-regdb-2022.08.12.orig/db.txt
++++ wireless-regdb-2022.08.12/db.txt
+@@ -788,10 +788,10 @@ country HT: DFS-FCC
+ # HU: http://english.nmhh.hu/cikk/297/Eljarasi_tajekoztato_a_24_GHzes_es_az_5_GHzes_savban_mukodo_berendezesek_engedelyezeserol
+ # HU: http://nmhh.hu/dokumentum/319/kis_hatotavolsagu_eszkozok_srdk.pdf
+ country HU: DFS-ETSI
+-	(2400 - 2483.5 @ 40), (100 mW)
+-	(5150 - 5250 @ 80), (200 mW), NO-OUTDOOR, AUTO-BW, wmmrule=ETSI
+-	(5250 - 5350 @ 80), (100 mW), NO-OUTDOOR, DFS, AUTO-BW, wmmrule=ETSI
+-	(5470 - 5725 @ 160), (500 mW), DFS, wmmrule=ETSI
++	(2400 - 2483.5 @ 40), (1000 mW)
++	(5150 - 5250 @ 80), (1000 mW), AUTO-BW
++	(5250 - 5350 @ 80), (1000 mW), AUTO-BW
++	(5470 - 5725 @ 160), (1000 mW)
+ 	# short range devices (ETSI EN 300 440-1)
+ 	(5725 - 5875 @ 80), (25 mW)
+ 	# 6 GHz band
