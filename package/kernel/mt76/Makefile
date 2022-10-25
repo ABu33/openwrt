@@ -446,8 +446,8 @@ define KernelPackage/mt76x2-common/install
 	$(INSTALL_DIR) $(1)/lib/firmware
 	cp \
 		$(PKG_BUILD_DIR)/firmware/mt7662_rom_patch.bin \
-		$(PKG_BUILD_DIR)/firmware/mt7662.bin \
 		$(1)/lib/firmware
+	cp ./files/mt7662_firmware_e3_v2.3.bin $(1)/lib/firmware/mt7662.bin
 endef
 
 define KernelPackage/mt76x0u/install
