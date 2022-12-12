@@ -6,7 +6,6 @@ include ./common-tp-link.mk
 
 DEFAULT_SOC := mt7621
 
-KERNEL_DTB += -d21
 DEVICE_VARS += ELECOM_HWNAME LINKSYS_HWNAME
 
 define Build/arcadyan-trx
