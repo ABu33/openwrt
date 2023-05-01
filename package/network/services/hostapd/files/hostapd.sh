@@ -447,11 +447,11 @@ append_iw_nai_realm() {
 }
 
 append_iw_venue_name() {
-	append bss_conf "venue_name=$1" "$N"
+	[ -n "$1" ] && append bss_conf "venue_name=$1" "$N"
 }
 
 append_iw_venue_url() {
-	append bss_conf "venue_url=$1" "$N"
+	[ -n "$1" ] && append bss_conf "venue_url=$1" "$N"
 }
 
 append_hs20_oper_friendly_name() {
