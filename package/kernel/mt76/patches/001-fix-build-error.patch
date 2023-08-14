@@ -1,0 +1,99 @@
+--- a/debugfs.c
++++ b/debugfs.c
+@@ -25,6 +25,7 @@ mt76_reg_get(void *data, u64 *val)
+ DEFINE_DEBUGFS_ATTRIBUTE(fops_regval, mt76_reg_get, mt76_reg_set,
+ 			 "0x%08llx\n");
+ 
++#if 0
+ static int
+ mt76_napi_threaded_set(void *data, u64 val)
+ {
+@@ -50,6 +51,7 @@ mt76_napi_threaded_get(void *data, u64 *
+ 
+ DEFINE_DEBUGFS_ATTRIBUTE(fops_napi_threaded, mt76_napi_threaded_get,
+ 			 mt76_napi_threaded_set, "%llu\n");
++#endif
+ 
+ int mt76_queues_read(struct seq_file *s, void *data)
+ {
+@@ -116,8 +118,6 @@ mt76_register_debugfs_fops(struct mt76_p
+ 	debugfs_create_bool("led_active_low", 0600, dir, &phy->leds.al);
+ 	debugfs_create_u32("regidx", 0600, dir, &dev->debugfs_reg);
+ 	debugfs_create_file_unsafe("regval", 0600, dir, dev, fops);
+-	debugfs_create_file_unsafe("napi_threaded", 0600, dir, dev,
+-				   &fops_napi_threaded);
+ 	debugfs_create_blob("eeprom", 0400, dir, &dev->eeprom);
+ 	if (dev->otp.data)
+ 		debugfs_create_blob("otp", 0400, dir, &dev->otp);
+--- a/mt7615/mcu.c
++++ b/mt7615/mcu.c
+@@ -6,6 +6,7 @@
+  */
+ 
+ #include <linux/firmware.h>
++#include <linux/module.h>
+ #include "mt7615.h"
+ #include "mcu.h"
+ #include "mac.h"
+--- a/mt7915/mt7915.h
++++ b/mt7915/mt7915.h
+@@ -6,6 +6,7 @@
+ 
+ #include <linux/interrupt.h>
+ #include <linux/ktime.h>
++#include <linux/module.h>
+ #include "../mt76_connac.h"
+ #include "regs.h"
+ 
+--- a/mt76_connac_mcu.c
++++ b/mt76_connac_mcu.c
+@@ -2,6 +2,7 @@
+ /* Copyright (C) 2020 MediaTek Inc. */
+ 
+ #include <linux/firmware.h>
++#include <linux/module.h>
+ #include "mt76_connac2_mac.h"
+ #include "mt76_connac_mcu.h"
+ 
+--- a/mt76.h
++++ b/mt76.h
+@@ -13,11 +13,38 @@
+ #include <linux/leds.h>
+ #include <linux/usb.h>
+ #include <linux/average.h>
+-#include <linux/soc/mediatek/mtk_wed.h>
+ #include <net/mac80211.h>
+ #include "util.h"
+ #include "testmode.h"
+ 
++#ifdef CONFIG_NET_MEDIATEK_SOC_WED
++#include <linux/soc/mediatek/mtk_wed.h>
++#else
++struct mtk_wed_device { int:0; };
++static inline bool mtk_wed_device_active(struct mtk_wed_device *dev)
++{
++	return false;
++}
++static inline bool mtk_wed_get_rx_capa(struct mtk_wed_device *dev)
++{
++	return false;
++}
++#define mtk_wed_device_detach(_dev) do {} while (0)
++#define mtk_wed_device_start(_dev, _mask) do {} while (0)
++#define mtk_wed_device_tx_ring_setup(_dev, _ring, _regs, _reset) -ENODEV
++#define mtk_wed_device_txfree_ring_setup(_dev, _ring, _regs) -ENODEV
++#define mtk_wed_device_reg_read(_dev, _reg) 0
++#define mtk_wed_device_reg_write(_dev, _reg, _val) do {} while (0)
++#define mtk_wed_device_irq_get(_dev, _mask) 0
++#define mtk_wed_device_irq_set_mask(_dev, _mask) do {} while (0)
++#define mtk_wed_device_rx_ring_setup(_dev, _ring, _regs, _reset) -ENODEV
++#define mtk_wed_device_ppe_check(_dev, _skb, _reason, _hash)  do {} while (0)
++#define mtk_wed_device_update_msg(_dev, _id, _msg, _len) -ENODEV
++#define mtk_wed_device_stop(_dev) do {} while (0)
++#define mtk_wed_device_dma_reset(_dev) do {} while (0)
++#define mtk_wed_device_setup_tc(_dev, _netdev, _type, _type_data) -EOPNOTSUPP
++#endif
++
+ #define MT_MCU_RING_SIZE	32
+ #define MT_RX_BUF_SIZE		2048
+ #define MT_SKB_HEAD_LEN		256

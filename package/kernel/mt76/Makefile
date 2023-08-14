@@ -1,16 +1,16 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mt76
-PKG_RELEASE=4
+PKG_RELEASE=1
 
 PKG_LICENSE:=GPLv2
 PKG_LICENSE_FILES:=
 
 PKG_SOURCE_URL:=https://github.com/openwrt/mt76
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_DATE:=2021-12-03
-PKG_SOURCE_VERSION:=678071ef70297b7264661c356ddb3c8cf7f3c87b
-PKG_MIRROR_HASH:=b1f8613f7c65ca6a893f83ed9efc3f7ce72b9b4904fd11b89264f57f4f2a3b5e
+PKG_SOURCE_DATE:=2022-12-22
+PKG_SOURCE_VERSION:=5b509e80384ab019ac11aa90c81ec0dbb5b0d7f2
+PKG_MIRROR_HASH:=6fc25df4d28becd010ff4971b23731c08b53e69381a9e4c868091899712f78a9
 
 PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
 PKG_USE_NINJA:=0
@@ -374,8 +374,8 @@ define KernelPackage/mt76x2-common/install
 	$(INSTALL_DIR) $(1)/lib/firmware
 	cp \
 		$(PKG_BUILD_DIR)/firmware/mt7662_rom_patch.bin \
-		$(PKG_BUILD_DIR)/firmware/mt7662.bin \
 		$(1)/lib/firmware
+	cp ./files/mt7662_firmware_e3_v2.3.bin $(1)/lib/firmware/mt7662.bin
 endef
 
 define KernelPackage/mt76x0u/install
