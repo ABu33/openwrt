@@ -1,6 +1,6 @@
 --- a/drivers/net/dsa/mt7530.c
 +++ b/drivers/net/dsa/mt7530.c
-@@ -1278,6 +1278,17 @@ mt7530_setup(struct dsa_switch *ds)
+@@ -1279,6 +1279,17 @@ mt7530_setup(struct dsa_switch *ds)
  	val |= MHWTRAP_MANUAL;
  	mt7530_write(priv, MT7530_MHWTRAP, val);
  
@@ -18,7 +18,7 @@
  	priv->p6_interface = PHY_INTERFACE_MODE_NA;
  
  	/* Enable and reset MIB counters */
-@@ -1395,8 +1406,7 @@ static void mt7530_phylink_mac_config(st
+@@ -1396,8 +1407,7 @@ static void mt7530_phylink_mac_config(st
  
  	mcr_cur = mt7530_read(priv, MT7530_PMCR_P(port));
  	mcr_new = mcr_cur;
@@ -28,7 +28,7 @@
  	mcr_new |= PMCR_IFG_XMIT(1) | PMCR_MAC_MODE | PMCR_BACKOFF_EN |
  		   PMCR_BACKPR_EN | PMCR_FORCE_MODE;
  
-@@ -1416,12 +1426,9 @@ static void mt7530_phylink_mac_config(st
+@@ -1417,12 +1427,9 @@ static void mt7530_phylink_mac_config(st
  			mcr_new |= PMCR_FORCE_EEE100;
  		break;
  	}
@@ -42,7 +42,7 @@
  	}
  
  	if (mcr_new != mcr_cur)
-@@ -1502,9 +1509,6 @@ unsupported:
+@@ -1503,9 +1510,6 @@ unsupported:
  		}
  	}
  
