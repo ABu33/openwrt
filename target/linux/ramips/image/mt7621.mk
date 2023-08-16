@@ -351,6 +351,8 @@ define Device/dlink_dir-860l-b1
   LOADER_TYPE := bin
   KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | relocate-kernel | \
 	lzma -a0 | uImage lzma
+  DEVICE_COMPAT_VERSION := 1.0
+  DEVICE_COMPAT_MESSAGE := Config is compat with swconfig
   IMAGE_SIZE := 16064k
   DEVICE_VENDOR := D-Link
   DEVICE_MODEL := DIR-860L

@@ -9,6 +9,7 @@
 board_config_update
 
 case "$(board_name)" in
+	dlink,dir-860l-b1|\
 	unielec,u7621-01-16m|\
 	xiaomi,mi-router-4a-gigabit|\
 	xiaomi,mi-router-3g-v2)

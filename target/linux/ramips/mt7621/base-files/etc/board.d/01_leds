@@ -35,7 +35,9 @@ dlink,dir-2640-a1|\
 dlink,dir-2660-a1)
 	ucidef_set_led_netdev "wan" "wan" "white:net" "wan"
 	;;
-dlink,dir-860l-b1|\
+dlink,dir-860l-b1)
+	ucidef_set_led_netdev "wan" "wan" "green:net" "eth0.2"
+	;;
 dlink,dir-867-a1|\
 dlink,dir-878-a1|\
 dlink,dir-882-a1|\
