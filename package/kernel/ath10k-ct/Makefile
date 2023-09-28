@@ -6,10 +6,10 @@ PKG_RELEASE:=1
 PKG_LICENSE:=GPLv2
 PKG_LICENSE_FILES:=
 
-PKG_SOURCE_URL:=https://github.com/greearb/ath10k-ct.git
+PKG_SOURCE_URL:=https://github.com/ABu33/ath10k-ct.git
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_DATE:=2023-06-05
-PKG_SOURCE_VERSION:=fadd0768cbd22248a60efbb219ccefc9d86cd78c
+PKG_SOURCE_DATE:=2023-09-28
+PKG_SOURCE_VERSION:=18a668248290d9809234945799c37d438c02b72c
 
 # Build the 6.2 ath10k-ct driver version.
 # Probably this should match as closely as
