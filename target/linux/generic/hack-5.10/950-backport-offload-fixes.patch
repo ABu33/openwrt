@@ -1,0 +1,157 @@
+--- a/include/net/netfilter/nf_flow_table.h
++++ b/include/net/netfilter/nf_flow_table.h
+@@ -253,8 +253,8 @@ nf_flow_table_offload_del_cb(struct nf_f
+ 	up_write(&flow_table->flow_block_lock);
+ }
+ 
+-int flow_offload_route_init(struct flow_offload *flow,
+-			    const struct nf_flow_route *route);
++void flow_offload_route_init(struct flow_offload *flow,
++			     const struct nf_flow_route *route);
+ 
+ int flow_offload_add(struct nf_flowtable *flow_table, struct flow_offload *flow);
+ void flow_offload_refresh(struct nf_flowtable *flow_table,
+--- a/net/netfilter/nf_flow_table_core.c
++++ b/net/netfilter/nf_flow_table_core.c
+@@ -123,9 +123,6 @@ static int flow_offload_fill_route(struc
+ 		break;
+ 	case FLOW_OFFLOAD_XMIT_XFRM:
+ 	case FLOW_OFFLOAD_XMIT_NEIGH:
+-		if (!dst_hold_safe(route->tuple[dir].dst))
+-			return -1;
+-
+ 		flow_tuple->dst_cache = dst;
+ 		flow_tuple->dst_cookie = flow_offload_dst_cookie(flow_tuple);
+ 		break;
+@@ -146,27 +143,12 @@ static void nft_flow_dst_release(struct
+ 		dst_release(flow->tuplehash[dir].tuple.dst_cache);
+ }
+ 
+-int flow_offload_route_init(struct flow_offload *flow,
++void flow_offload_route_init(struct flow_offload *flow,
+ 			    const struct nf_flow_route *route)
+ {
+-	int err;
+-
+-	err = flow_offload_fill_route(flow, route, FLOW_OFFLOAD_DIR_ORIGINAL);
+-	if (err < 0)
+-		return err;
+-
+-	err = flow_offload_fill_route(flow, route, FLOW_OFFLOAD_DIR_REPLY);
+-	if (err < 0)
+-		goto err_route_reply;
+-
++	flow_offload_fill_route(flow, route, FLOW_OFFLOAD_DIR_ORIGINAL);
++	flow_offload_fill_route(flow, route, FLOW_OFFLOAD_DIR_REPLY);
+ 	flow->type = NF_FLOW_OFFLOAD_ROUTE;
+-
+-	return 0;
+-
+-err_route_reply:
+-	nft_flow_dst_release(flow, FLOW_OFFLOAD_DIR_ORIGINAL);
+-
+-	return err;
+ }
+ EXPORT_SYMBOL_GPL(flow_offload_route_init);
+ 
+--- a/net/netfilter/nft_flow_offload.c
++++ b/net/netfilter/nft_flow_offload.c
+@@ -240,9 +240,14 @@ static int nft_flow_route(const struct n
+ 		break;
+ 	}
+ 
++	if (!dst_hold_safe(this_dst))
++		return -ENOENT;
++
+ 	nf_route(nft_net(pkt), &other_dst, &fl, false, nft_pf(pkt));
+-	if (!other_dst)
++	if (!other_dst) {
++		dst_release(this_dst);
+ 		return -ENOENT;
++	}
+ 
+ 	nft_default_forward_path(route, this_dst, dir);
+ 	nft_default_forward_path(route, other_dst, !dir);
+@@ -332,8 +337,7 @@ static void nft_flow_offload_eval(const
+ 	if (!flow)
+ 		goto err_flow_alloc;
+ 
+-	if (flow_offload_route_init(flow, &route) < 0)
+-		goto err_flow_add;
++	flow_offload_route_init(flow, &route);
+ 
+ 	if (tcph) {
+ 		ct->proto.tcp.seen[0].flags |= IP_CT_TCP_FLAG_BE_LIBERAL;
+@@ -344,12 +348,12 @@ static void nft_flow_offload_eval(const
+ 	if (ret < 0)
+ 		goto err_flow_add;
+ 
+-	dst_release(route.tuple[!dir].dst);
+ 	return;
+ 
+ err_flow_add:
+ 	flow_offload_free(flow);
+ err_flow_alloc:
++	dst_release(route.tuple[dir].dst);
+ 	dst_release(route.tuple[!dir].dst);
+ err_flow_route:
+ 	clear_bit(IPS_OFFLOAD_BIT, &ct->status);
+--- a/net/netfilter/xt_FLOWOFFLOAD.c
++++ b/net/netfilter/xt_FLOWOFFLOAD.c
+@@ -449,18 +449,28 @@ xt_flowoffload_route(struct sk_buff *skb
+ 	switch (xt_family(par)) {
+ 	case NFPROTO_IPV4:
+ 		fl.u.ip4.daddr = ct->tuplehash[dir].tuple.src.u3.ip;
++		fl.u.ip4.saddr = ct->tuplehash[!dir].tuple.src.u3.ip;
+ 		fl.u.ip4.flowi4_oif = xt_in(par)->ifindex;
++		fl.u.ip4.flowi4_mark = skb->mark;
++		fl.u.ip4.flowi4_flags = FLOWI_FLAG_ANYSRC;
+ 		break;
+ 	case NFPROTO_IPV6:
+-		fl.u.ip6.saddr = ct->tuplehash[!dir].tuple.dst.u3.in6;
+ 		fl.u.ip6.daddr = ct->tuplehash[dir].tuple.src.u3.in6;
++		fl.u.ip6.saddr = ct->tuplehash[!dir].tuple.src.u3.in6;
+ 		fl.u.ip6.flowi6_oif = xt_in(par)->ifindex;
++		fl.u.ip6.flowlabel = ip6_flowinfo(ipv6_hdr(skb));
++		fl.u.ip6.flowi6_flags = FLOWI_FLAG_ANYSRC;
+ 		break;
+ 	}
+ 
++	if (!dst_hold_safe(this_dst))
++		return -ENOENT;
++
+ 	nf_route(xt_net(par), &other_dst, &fl, false, xt_family(par));
+-	if (!other_dst)
++	if (!other_dst) {
++		dst_release(this_dst);
+ 		return -ENOENT;
++	}
+ 
+ 	nf_default_forward_path(route, this_dst, dir, devs);
+ 	nf_default_forward_path(route, other_dst, !dir, devs);
+@@ -536,8 +546,7 @@ flowoffload_tg(struct sk_buff *skb, cons
+ 	if (!flow)
+ 		goto err_flow_alloc;
+ 
+-	if (flow_offload_route_init(flow, &route) < 0)
+-		goto err_flow_add;
++	flow_offload_route_init(flow, &route);
+ 
+ 	if (tcph) {
+ 		ct->proto.tcp.seen[0].flags |= IP_CT_TCP_FLAG_BE_LIBERAL;
+@@ -556,14 +565,13 @@ flowoffload_tg(struct sk_buff *skb, cons
+ 	xt_flowoffload_check_device(table, devs[0]);
+ 	xt_flowoffload_check_device(table, devs[1]);
+ 
+-	dst_release(route.tuple[!dir].dst);
+-
+ 	return XT_CONTINUE;
+ 
+ err_flow_add:
+ 	flow_offload_free(flow);
+ err_flow_alloc:
+ 	dst_release(route.tuple[!dir].dst);
++	dst_release(route.tuple[!dir].dst);
+ err_flow_route:
+ 	clear_bit(IPS_OFFLOAD_BIT, &ct->status);
+ 
