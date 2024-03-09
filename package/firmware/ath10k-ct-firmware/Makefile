@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ath10k-ct-firmware
-PKG_VERSION:=2021-11-08
+PKG_VERSION:=2023-04-04
 PKG_RELEASE:=1
 
 DL_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
@@ -126,24 +126,24 @@ endef
 $(eval $(call Download,ath10k-firmware-qca4019-ct-htt))
 
 
-QCA9888_FIRMWARE_FILE_CT:=firmware-5-ct-full-community-13.bin
+QCA9888_FIRMWARE_FILE_CT:=firmware-5-ct-full-community.bin
 define Download/ath10k-firmware-qca9888-ct
-  $(call Download/ct-firmware,QCA9888,ath10k-9888-10-4b)
-  HASH:=44e1ecbdfb55b5f100577cbc8fbca8ffe93907d7dc16429e24fcf44603556797
+  $(call Download/ct-firmware,QCA9888,ath10k-9888-10-4b/ath10k-fw-beta)
+  HASH:=7d7f16fea259119d834ba7c722036c70de14ed92c206d1a1ff9b45f3d26e1aef
 endef
 $(eval $(call Download,ath10k-firmware-qca9888-ct))
 
-QCA9888_FIRMWARE_FILE_CT_FULL_HTT:=firmware-5-ct-full-htt-mgt-community-13.bin
+QCA9888_FIRMWARE_FILE_CT_FULL_HTT:=firmware-5-ct-full-htt-mgt-community.bin
 define Download/ath10k-firmware-qca9888-ct-full-htt
-  $(call Download/ct-firmware-full-htt,QCA9888,ath10k-9888-10-4b)
-  HASH:=c1296d199f0a8660d4bdf5bce5cbbb139129eeebffe049fb37dc0c3304305ad4
+  $(call Download/ct-firmware-full-htt,QCA9888,ath10k-9888-10-4b/ath10k-fw-beta)
+  HASH:=d4111ba5f08c146696824875483ce2b26d3251ebf3dfe2d96832a31db4edd98b
 endef
 $(eval $(call Download,ath10k-firmware-qca9888-ct-full-htt))
 
-QCA9888_FIRMWARE_FILE_CT_HTT:=firmware-5-ct-htt-mgt-community-13.bin
+QCA9888_FIRMWARE_FILE_CT_HTT:=firmware-5-ct-htt-mgt-community.bin
 define Download/ath10k-firmware-qca9888-ct-htt
-  $(call Download/ct-firmware-htt,QCA9888,ath10k-9888-10-4b)
-  HASH:=2c2fe9aa2d3eb08b6f3285d5faf4b217b52ca7b52199ce6407e915a1379b7fce
+  $(call Download/ct-firmware-htt,QCA9888,ath10k-9888-10-4b/ath10k-fw-beta)
+  HASH:=0e48559fc853400686644557e3e231e724acbb5119afde2b2917b364a0964e7d
 endef
 $(eval $(call Download,ath10k-firmware-qca9888-ct-htt))
 
