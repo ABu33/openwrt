@@ -516,6 +516,7 @@ mac80211_hostapd_setup_bss() {
 
 	set_default wds 0
 	set_default start_disabled 0
+	set_default dtim_period 3
 
 	[ "$wds" -gt 0 ] && {
 		append hostapd_cfg "wds_sta=1" "$N"

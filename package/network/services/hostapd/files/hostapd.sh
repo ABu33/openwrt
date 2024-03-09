@@ -593,6 +593,8 @@ hostapd_set_bss_options() {
 	set_default airtime_bss_weight 0
 	set_default airtime_bss_limit 0
 	set_default eap_server 0
+	set_default wpa_group_rekey 86400
+	set_default disassoc_low_ack 0
 
 	/usr/sbin/hostapd -vfils || fils=0
 
