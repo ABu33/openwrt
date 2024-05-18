@@ -36,7 +36,7 @@ Signed-off-by: Pablo Neira Ayuso <pablo@netfilter.org>
 
 --- a/net/netfilter/nf_conntrack_proto_tcp.c
 +++ b/net/netfilter/nf_conntrack_proto_tcp.c
-@@ -1026,6 +1026,13 @@ int nf_conntrack_tcp_packet(struct nf_co
+@@ -1061,6 +1061,13 @@ int nf_conntrack_tcp_packet(struct nf_co
  				ct->proto.tcp.last_flags |=
  					IP_CT_EXP_CHALLENGE_ACK;
  		}
@@ -50,7 +50,7 @@ Signed-off-by: Pablo Neira Ayuso <pablo@netfilter.org>
  		spin_unlock_bh(&ct->lock);
  		nf_ct_l4proto_log_invalid(skb, ct, state,
  					  "packet (index %d) in dir %d ignored, state %s",
-@@ -1150,6 +1157,14 @@ int nf_conntrack_tcp_packet(struct nf_co
+@@ -1185,6 +1192,14 @@ int nf_conntrack_tcp_packet(struct nf_co
  			 * segments we ignored. */
  			goto in_window;
  		}
