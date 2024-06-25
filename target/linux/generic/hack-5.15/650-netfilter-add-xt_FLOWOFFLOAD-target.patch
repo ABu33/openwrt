@@ -453,7 +453,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
 +	info->hw_outdev = info->indev;
 +
 +	if (nf_is_valid_ether_device(info->indev))
-+		info->xmit_type = FLOW_OFFLOAD_XMIT_DIRECT;
++		info->xmit_type = FLOW_OFFLOAD_XMIT_NEIGH;
 +}
 +
 +static int nf_dev_fill_forward_path(const struct nf_flow_route *route,
