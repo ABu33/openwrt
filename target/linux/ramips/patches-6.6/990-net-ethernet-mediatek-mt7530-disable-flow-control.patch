@@ -1,0 +1,88 @@
+--- a/drivers/net/dsa/mt7530.c
++++ b/drivers/net/dsa/mt7530.c
+@@ -2431,6 +2431,17 @@ mt7530_setup(struct dsa_switch *ds)
+ 
+ 	mt753x_trap_frames(priv);
+ 
++	/* Disable flow control for P5 and P6 ports - mt7621 cpu bug */
++	usleep_range(10, 20);
++
++	val = mt7530_read(priv, 0x1FE0);
++	val &= ~BIT(31);
++	mt7530_write(priv, 0x1FE0, val);
++
++	mt7530_write(priv, MT753X_PMCR_P(5), 0x5e30b);
++	mt7530_write(priv, MT753X_PMCR_P(6), 0x5e30b);
++	usleep_range(10, 20);
++
+ 	/* Enable and reset MIB counters */
+ 	mt7530_mib_reset(ds);
+ 
+@@ -2923,10 +2934,6 @@ static void mt753x_phylink_mac_link_up(s
+ 	}
+ 	if (duplex == DUPLEX_FULL) {
+ 		mcr |= PMCR_FORCE_FDX;
+-		if (tx_pause)
+-			mcr |= PMCR_FORCE_TX_FC_EN;
+-		if (rx_pause)
+-			mcr |= PMCR_FORCE_RX_FC_EN;
+ 	}
+ 
+ 	if (mode == MLO_AN_PHY && phydev && phy_init_eee(phydev, false) >= 0) {
+@@ -2949,8 +2956,6 @@ static void mt753x_phylink_get_caps(stru
+ {
+ 	struct mt7530_priv *priv = ds->priv;
+ 
+-	config->mac_capabilities = MAC_ASYM_PAUSE | MAC_SYM_PAUSE;
+-
+ 	priv->info->mac_port_get_caps(ds, port, config);
+ }
+ 
+@@ -2993,12 +2998,6 @@ static void mt7530_pcs_get_state(struct
+ 		state->speed = SPEED_UNKNOWN;
+ 		break;
+ 	}
+-
+-	state->pause &= ~(MLO_PAUSE_RX | MLO_PAUSE_TX);
+-	if (pmsr & PMSR_RX_FC)
+-		state->pause |= MLO_PAUSE_RX;
+-	if (pmsr & PMSR_TX_FC)
+-		state->pause |= MLO_PAUSE_TX;
+ }
+ 
+ static int mt753x_pcs_config(struct phylink_pcs *pcs, unsigned int neg_mode,
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -874,8 +874,7 @@ static void mtk_gdm_mac_link_up(struct m
+ 
+ 	mcr = mtk_r32(mac->hw, MTK_MAC_MCR(mac->id));
+ 	mcr &= ~(MAC_MCR_SPEED_100 | MAC_MCR_SPEED_1000 |
+-		 MAC_MCR_FORCE_DPX | MAC_MCR_FORCE_TX_FC |
+-		 MAC_MCR_FORCE_RX_FC);
++		 MAC_MCR_FORCE_DPX);
+ 
+ 	/* Configure speed */
+ 	mac->speed = speed;
+@@ -893,12 +892,6 @@ static void mtk_gdm_mac_link_up(struct m
+ 	if (duplex == DUPLEX_FULL)
+ 		mcr |= MAC_MCR_FORCE_DPX;
+ 
+-	/* Configure pause modes - phylink will avoid these for half duplex */
+-	if (tx_pause)
+-		mcr |= MAC_MCR_FORCE_TX_FC;
+-	if (rx_pause)
+-		mcr |= MAC_MCR_FORCE_RX_FC;
+-
+ 	mcr |= MAC_MCR_TX_EN | MAC_MCR_RX_EN | MAC_MCR_FORCE_LINK;
+ 	mtk_w32(mac->hw, mcr, MTK_MAC_MCR(mac->id));
+ }
+@@ -4833,8 +4826,7 @@ static int mtk_add_mac(struct mtk_eth *e
+ 
+ 	mac->phylink_config.dev = &eth->netdev[id]->dev;
+ 	mac->phylink_config.type = PHYLINK_NETDEV;
+-	mac->phylink_config.mac_capabilities = MAC_ASYM_PAUSE | MAC_SYM_PAUSE |
+-		MAC_10 | MAC_100 | MAC_1000 | MAC_2500FD;
++	mac->phylink_config.mac_capabilities = MAC_10 | MAC_100 | MAC_1000 | MAC_2500FD;
+ 
+ 	/* MT7623 gmac0 is now missing its speed-specific PLL configuration
+ 	 * in its .mac_config method (since state->speed is not valid there.
