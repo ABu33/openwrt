@@ -53,17 +53,17 @@
  static int mt753x_pcs_config(struct phylink_pcs *pcs, unsigned int neg_mode,
 --- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
 +++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
-@@ -874,8 +874,7 @@ static void mtk_gdm_mac_link_up(struct m
- 
+@@ -875,8 +875,7 @@ static void mtk_gdm_mac_link_up(struct m
  	mcr = mtk_r32(mac->hw, MTK_MAC_MCR(mac->id));
  	mcr &= ~(MAC_MCR_SPEED_100 | MAC_MCR_SPEED_1000 |
+ 		 MAC_MCR_EEE100M | MAC_MCR_EEE1G |
 -		 MAC_MCR_FORCE_DPX | MAC_MCR_FORCE_TX_FC |
 -		 MAC_MCR_FORCE_RX_FC);
 +		 MAC_MCR_FORCE_DPX);
  
  	/* Configure speed */
  	mac->speed = speed;
-@@ -893,12 +892,6 @@ static void mtk_gdm_mac_link_up(struct m
+@@ -894,12 +893,6 @@ static void mtk_gdm_mac_link_up(struct m
  	if (duplex == DUPLEX_FULL)
  		mcr |= MAC_MCR_FORCE_DPX;
  
@@ -73,10 +73,10 @@
 -	if (rx_pause)
 -		mcr |= MAC_MCR_FORCE_RX_FC;
 -
- 	mcr |= MAC_MCR_TX_EN | MAC_MCR_RX_EN | MAC_MCR_FORCE_LINK;
- 	mtk_w32(mac->hw, mcr, MTK_MAC_MCR(mac->id));
- }
-@@ -4855,8 +4848,7 @@ static int mtk_add_mac(struct mtk_eth *e
+ 	if (mode == MLO_AN_PHY && phy && mac->tx_lpi_enabled && phy_init_eee(phy, false) >= 0) {
+ 		mcr |= MAC_MCR_EEE100M | MAC_MCR_EEE1G;
+ 		mtk_w32(mac->hw,
+@@ -4924,8 +4917,7 @@ static int mtk_add_mac(struct mtk_eth *e
  
  	mac->phylink_config.dev = &eth->netdev[id]->dev;
  	mac->phylink_config.type = PHYLINK_NETDEV;
