@@ -1,7 +1,5 @@
-Index: linux-6.6.89/drivers/net/dsa/mt7530.c
-===================================================================
---- linux-6.6.89.orig/drivers/net/dsa/mt7530.c
-+++ linux-6.6.89/drivers/net/dsa/mt7530.c
+--- a/drivers/net/dsa/mt7530.c
++++ b/drivers/net/dsa/mt7530.c
 @@ -1369,11 +1369,11 @@ mt7530_port_bridge_flags(struct dsa_swit
  			 struct netlink_ext_ack *extack)
  {
